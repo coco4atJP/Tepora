@@ -1,0 +1,51 @@
+# It is recommended to install torch separately based on your CUDA version.
+# For example, for CUDA 12.1: pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
+torch>=2.3.1
+
+# Core ML and NLP
+transformers>=4.41.2
+bitsandbytes>=0.43.1
+accelerate>=0.31.0
+
+# LangChain ecosystem
+# Upgraded to latest versions which require Pydantic v2.
+langchain>=0.2.5
+langchain-core>=0.2.10
+langchain-community>=0.2.5
+langchain-huggingface>=0.0.3
+langgraph>=0.1.1
+
+# Llama.cpp Python bindings
+# For GPU acceleration, install with specific flags, e.g.:
+# CMAKE_ARGS="-DLLAMA_CUBLAS=on" FORCE_CMAKE=1 pip install llama-cpp-python --force-reinstall --upgrade --no-cache-dir
+llama-cpp-python>=0.2.79
+
+# Utilities (Upgraded to Pydantic v2)
+# The project code has been updated to use Pydantic v2 natively.
+pydantic>=2.8.2
+requests>=2.32.3
+urllib3>=2.2.2
+python-dotenv>=1.0.1
+
+# Custom/Project-specific
+# 'langchain_mcp_adapters' not found on PyPI, assuming it's a local/private package.
+langchain_mcp_adapters>=0.1.9
+
+# Explicitly define the mcp version for stable stdio communication.
+mcp>=1.13.1
+
+# LangGraph の完全な機能性のために追加
+# For persistence, a DB backend like aiosqlite for SQLite support is included.
+aiosqlite>=0.20.0
+
+# 非同期処理のサポート強化
+anyio>=4.4.0
+
+# 設定管理の強化
+PyYAML>=6.0.1
+
+chromadb>=0.5.0
+sentence-transformers>=2.2.0
+
+# For advanced sentence tokenization
+nltk>=3.8.1
