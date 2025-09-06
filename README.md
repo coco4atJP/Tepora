@@ -1,5 +1,5 @@
 
-# Tepora - マルチAIエージェントシステム (Beta v 1.0 )
+# Tepora - マルチAIエージェントシステム (Beta v1.5)
 
 洗練されたマルチエージェント対話型AIシステムを提供します。このプロジェクトでは、ローカルLLM、動的リソース管理、拡張可能なツールシステム、そして**EM-LLM (Episodic Memory Large Language Model)** アーキテクチャに基づく記憶システムを活用し、文脈を理解し学習する自律的なエージェントを構築します。
 
@@ -24,8 +24,8 @@
 
 このアプリケーションは、状態駆動型のグラフベースの実行モデルに従います。
 
-1. **`main.py`**: エントリポイント。`LLMManager`、`ToolManager`、`AgentCore` グラフを初期化します。その後、コマンドラインループに入り、ユーザー入力を受け付けます。
-2. **`agent_core/graph.py`**: エージェントの中核。`LangGraph` を使用して、EM-LLMアーキテクチャに基づいた実行フローを定義します。
+1. **`main.py`**: アプリケーションのエントリポイント。`LLMManager`と`ToolManager`を初期化した後、**EM-LLM（エピソード記憶）システムの初期化を試みます**。成功した場合は、EM-LLMの機能を完全に統合した`EMEnabledAgentCore`グラフを構築します。失敗した場合は、基本的な機能を備えた従来の`AgentCore`グラフにフォールバックします。その後、コマンドラインループでユーザー入力を受け付けます。
+2. **`agent_core/graph.py`**: **従来の`AgentCore`を定義します**。これは、EM-LLMシステムが利用できない場合のフォールバックとして機能する、エージェントの基本的な実行グラフです。`LangGraph`を基盤とし、コマンドルーティング、ReActループ、各種ツール実行のロジックを含みます。EM-LLMが有効な場合は、このグラフは直接使用されず、`EMEnabledAgentCore`が優先されます。
     * **記憶パイプライン**: 全ての対話は以下のパイプラインを通過します。
         1.  **記憶検索 (Retrieval)**: 対話の開始時に、ユーザー入力に基づいて関連する過去のエピソードを長期記憶から検索します。
         2.  **記憶統合 (Synthesis)**: SLM（小規模言語モデル）が、検索されたエピソードを簡潔な文脈サマリーに統合します。
@@ -39,7 +39,7 @@
         4.  `synthesize_final_response_node`: ReAct ループが完了すると、最終的な技術レポートがユーザーフレンドリーなレスポンスに変換されます。
 3. **`agent_core/llm_manager.py`**: LLM のライフサイクルを管理します。メインのLLMに加えて、記憶の統合と定着を担当するSLM（小規模言語モデル）も管理します。
 4. **`agent_core/tool_manager.py`**: すべてのツールのための統一インターフェースです。ネイティブ Python ツールと MCP 経由で接続された外部ツールを検出および管理します。
-5. **`agent_core/memory/memory_system.py`**: FAISSベースのベクトルストアを利用して、エピソード記憶の保存と類似度検索を管理します。
+5. **`agent_core/memory/memory_system.py`**: SQLiteデータベースを利用して、エピソード記憶の保存と類似度検索を管理します。
 
 ## 🚀 はじめに
 
@@ -114,7 +114,7 @@ python main.py
 * **`agent_core/state.py`**: グラフ内のノード間で渡される状態を表す `AgentState` TypedDict を定義します。
 * **`agent_core/llm_manager.py`**: GGUF モデルの動的なロード/アンロードを処理して VRAM もしくは RAM を管理します。メインのLLMと記憶処理用のSLMの両方を扱います。
 * **`agent_core/tool_manager.py`**: すべてのツール (ネイティブおよび MCP) の統合実行インターフェースを検出、管理、および提供します。
-* **`agent_core/memory/memory_system.py`**: FAISSベースのベクトルストアを利用して、エピソード記憶の保存と類似度検索を管理します。
+* **`agent_core/memory/memory_system.py`**: SQLiteデータベースを利用して、エピソード記憶の保存と類似度検索を管理します。
 * **`agent_core/config.py`**: モデルパス、生成パラメータ、プロンプト、ペルソナ、API キーの一元的な構成。EM-LLMの記憶統合・定着用プロンプトも含まれます。
 
 ## 🛠️ ツールシステム
