@@ -53,8 +53,9 @@
 * `google Custom Search JSON API` 検索機能を使用するためにはGoogleAPIを取得する必要があります。
 
 ### 最低の構成スペック
-* 7.5GB以上のデスク空き容量
-* 16GB以上のRAMもしくは6GB以上のVRAM <sub> 展開されるMCPサーバー分のRAMとロードされるSLMのためのRAM or VRAMが必須です。`llama.cpp`の`n_ctx`を削減することでロードされるSLMのRAMは減らせますが、動作に支障をきたす可能性があります。 </sub>
+* 8 GB以上のデスク空き容量
+* 16GB以上のRAMもしくは6GB以上のVRAM : 展開されるMCPサーバー分のRAMとロードされるSLMのためのRAM or VRAMが必須です。
+  <sub> `llama.cpp`の`n_ctx`を削減することでロードされるSLMのRAMは減らせますが、動作に支障をきたす可能性があります。 </sub>
 * `Llama-cpp-python` が対応している計算環境。
 
 ### インストール
@@ -166,5 +167,6 @@ python main.py
 
 
 このプロジェクトはにApache License 2.0に基づきライセンスされています。詳細は`LICENSE`ファイルをご覧ください。
+
 
 
