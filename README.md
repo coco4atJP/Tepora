@@ -87,7 +87,8 @@ GOOGLE_CUSTOM_SEARCH_ENGINE_ID="your_google_cx_id"
 ```
 
 4. **プロジェクトルートにモデルを配置:**
-main.pyと同じ階層に使用するllama.cpp対応GGUF形式ファイルを配置します。デフォルトのモデルは下記のものです。
+main.pyと同じ階層に使用するllama.cpp対応GGUF形式ファイルを配置します。
+デフォルトのモデルは下記のものです。
 
 [unsloth/gemma-3n-E4B-it-GGUF](https://huggingface.co/unsloth/gemma-3n-E4B-it-GGUF/blob/main/gemma-3n-E4B-it-IQ4_XS.gguf)
 
@@ -167,17 +168,12 @@ python main.py
 * `BASE_SYSTEM_PROMPTS`: 要約、ReAct推論、記憶の統合・定着などのタスクにおけるコア機能プロンプトを定義します。
 * **`mcp_tools_config.json`**: 外部ツールサーバーを設定します。
 
-## 🗺️ ロードマップ
-
-* [ ] ReActループ内により堅牢なエラー回復メカニズムを実装する。
-* [ ] シンプルGUIの作成
-* [ ] 記憶検索アルゴリズムの高度化（Recency、Importanceスコアの導入など）。
-* [ ] 記憶の質を向上させるための自動評価・要約修正メカニズムの実装。
 
 ## 📜 ライセンス
 
 
 このプロジェクトはにApache License 2.0に基づきライセンスされています。詳細は`LICENSE`ファイルをご覧ください。
+
 
 
 
