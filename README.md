@@ -86,6 +86,14 @@ GOOGLE_CUSTOM_SEARCH_API_KEY="your_google_api_key"
 GOOGLE_CUSTOM_SEARCH_ENGINE_ID="your_google_cx_id"
 ```
 
+4. **プロジェクトルートにモデルを配置:**
+main.pyと同じ階層に使用するllama.cpp対応GGUF形式ファイルを配置します。デフォルトのモデルは下記のものです。
+
+[unsloth/gemma-3n-E4B-it-GGUF](https://huggingface.co/unsloth/gemma-3n-E4B-it-GGUF/blob/main/gemma-3n-E4B-it-IQ4_XS.gguf)
+[Menlo/Jan-nano-128k-gguf](https://huggingface.co/Menlo/Jan-nano-128k-gguf/blob/main/jan-nano-128k-iQ4_XS.gguf)
+[unsloth/gemma-3-270m-it-GGUF](https://huggingface.co/unsloth/gemma-3-270m-it-GGUF/blob/main/gemma-3-270m-it-Q8_0.gguf)
+[Casual-Autopsy/snowflake-arctic-embed-l-v2.0-gguf](https://huggingface.co/Casual-Autopsy/snowflake-arctic-embed-l-v2.0-gguf/blob/main/snowflake-arctic-embed-l-v2.0-q6_k.gguf)
+
 ### エージェントの実行
 
 プロジェクトルートディレクトリからエージェントを起動します:
@@ -167,6 +175,7 @@ python main.py
 
 
 このプロジェクトはにApache License 2.0に基づきライセンスされています。詳細は`LICENSE`ファイルをご覧ください。
+
 
 
 
