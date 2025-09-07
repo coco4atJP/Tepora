@@ -168,8 +168,7 @@ class EMEventSegmenter:
         
         for i in range(self.config.surprise_window, len(scores)):
             # 移動ウィンドウでの平均と標準偏差を計算
-            window_start = max(0, i - self.config.surprise_window)
-            window_scores = scores[window_start:i]
+            window_scores = scores[i - self.config.surprise_window:i]
             
             if len(window_scores) > 1:
                 mean_score = np.mean(window_scores)

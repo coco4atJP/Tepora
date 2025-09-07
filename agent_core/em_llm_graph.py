@@ -324,7 +324,7 @@ class EMCompatibilityLayer:
             self.logger.error(f"EM-LLM compatibility layer failed, falling back to empty result: {e}")
             return []
     
-    def add_episode(self, summary: str, user_input: str, ai_response: str):
+    async def add_episode(self, summary: str, user_input: str, ai_response: str):
         """
         従来のMemorySystem.add_episodeと互換性のあるインターフェース
         
@@ -334,7 +334,7 @@ class EMCompatibilityLayer:
         
         try:
             # EM-LLMのメモリ形成パイプラインを実行
-            formed_events = self.em_llm_integrator.process_conversation_turn_for_memory(
+            formed_events = await self.em_llm_integrator.process_conversation_turn_for_memory(
                 user_input, ai_response
             )
             

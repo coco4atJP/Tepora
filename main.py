@@ -30,7 +30,7 @@ from agent_core.em_llm_graph import EMEnabledAgentCore, EMCompatibilityLayer
 from agent_core.embedding_provider import LlamaCppEmbeddingProvider 
 
 # 従来のインポート
-from agent_core.config import MCP_CONFIG_FILE, MAX_CHAT_HISTORY_LENGTH, EM_LLM_CONFIG
+from agent_core.config import MCP_CONFIG_FILE, MAX_CHAT_HISTORY_TOKENS, EM_LLM_CONFIG
 from agent_core.llm_manager import LLMManager
 from agent_core.tool_manager import ToolManager
 
@@ -79,20 +79,10 @@ async def main():
             em_llm_integrator = EMLLMIntegrator(llm_manager, embedding_provider)
             print("✓ EM-LLM integrator initialized")
             
-            # 設定値を更新
-            em_config = EMConfig(
-                surprise_window=EM_LLM_CONFIG["surprise_window_size"],
-                surprise_gamma=EM_LLM_CONFIG["surprise_gamma"],
-                min_event_size=EM_LLM_CONFIG["min_event_size"],
-                max_event_size=EM_LLM_CONFIG["max_event_size"],
-                similarity_buffer_ratio=EM_LLM_CONFIG["similarity_buffer_ratio"],
-                contiguity_buffer_ratio=EM_LLM_CONFIG["contiguity_buffer_ratio"],
-                total_retrieved_events=EM_LLM_CONFIG["total_retrieved_events"],
-                recency_weight=EM_LLM_CONFIG["recency_weight"],
-                use_boundary_refinement=EM_LLM_CONFIG["use_boundary_refinement"],
-                refinement_metric=EM_LLM_CONFIG["refinement_metric"],
-                refinement_search_range=EM_LLM_CONFIG["refinement_search_range"]
-            )
+            # config.pyのキー名とEMConfigのフィールド名が一致しないため、マッピング辞書を作成
+            config_mapping = {field: EM_LLM_CONFIG[key] for field, key in [('surprise_window', 'surprise_window_size'), ('repr_topk', 'representative_tokens_per_event')] if key in EM_LLM_CONFIG}
+            # EM_LLM_CONFIGから直接ロードできる値をアンパックして渡す
+            em_config = EMConfig(**{**EM_LLM_CONFIG, **config_mapping})
             em_llm_integrator.config = em_config
             print("✓ EM-LLM configuration applied")
             
@@ -226,10 +216,25 @@ async def main():
                     print("\nAI: An unexpected error occurred.")
                     chat_history.append(HumanMessage(content=user_input))
                 
-                # チャット履歴の長さ制限
-                if len(chat_history) > MAX_CHAT_HISTORY_LENGTH:
-                    chat_history = chat_history[-MAX_CHAT_HISTORY_LENGTH:]
-                    print(f"INFO: Chat history truncated to {MAX_CHAT_HISTORY_LENGTH} messages.")
+                # チャット履歴のトークン数制限
+                try:
+                    if llm_manager:
+                        current_tokens = llm_manager.count_tokens_for_messages(chat_history)
+                        if current_tokens > MAX_CHAT_HISTORY_TOKENS:
+                            print(f"INFO: Chat history exceeds token limit ({current_tokens}/{MAX_CHAT_HISTORY_TOKENS}). Truncating...")
+                            
+                            truncated_history = list(chat_history)
+                            # 制限を下回るまで、古いメッセージペア（Human & AI）を削除
+                            while llm_manager.count_tokens_for_messages(truncated_history) > MAX_CHAT_HISTORY_TOKENS and len(truncated_history) > 2:
+                                truncated_history = truncated_history[2:]
+                            
+                            chat_history = truncated_history
+                            final_tokens = llm_manager.count_tokens_for_messages(chat_history)
+                            print(f"INFO: Chat history truncated. Final tokens: {final_tokens}")
+
+                except Exception as e:
+                    logger.warning(f"Could not truncate chat history by tokens: {e}. The history may grow unchecked.")
+
                 
                 print("-" * 60)
                 

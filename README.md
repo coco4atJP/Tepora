@@ -1,7 +1,8 @@
+![log](Tepora_log.png)
 
 # Tepora - マルチAIエージェントシステム (Beta v1.5)
 
-洗練されたマルチエージェント対話型AIシステムを提供します。このプロジェクトでは、ローカルLLM、動的リソース管理、拡張可能なツールシステム、そして**EM-LLM (Episodic Memory Large Language Model)** アーキテクチャに基づく記憶システムを活用し、文脈を理解し学習する自律的なエージェントを構築します。
+洗練されたマルチエージェント対話型AIシステムを提供します。このプロジェクトでは、ローカルLLM、動的リソース管理、拡張可能なツールシステム、そして**EM-LLM (arXiv:2407.09450)** アーキテクチャに基づく記憶システムを活用し、文脈を理解し学習する自律的なエージェントを構築します。
 
 ## ✨ 主な機能
 
@@ -52,8 +53,9 @@
 * `google Custom Search JSON API` 検索機能を使用するためにはGoogleAPIを取得する必要があります。
 
 ### 最低の構成スペック
-* 7.5GB以上のデスク空き容量
-* 16GB以上のRAMもしくは6GB以上のVRAM <sub> 展開されるMCPサーバー分のRAMとロードされるSLMのためのRAM or VRAMが必須です。`llama.cpp`の`n_ctx`を削減することでロードされるSLMのRAMは減らせますが、動作に支障をきたす可能性があります。 </sub>
+* 8 GB以上のデスク空き容量
+* 16GB以上のRAMもしくは6GB以上のVRAM : 展開されるMCPサーバー分のRAMとロードされるSLMのためのRAM or VRAMが必須です。
+  <sub> `llama.cpp`の`n_ctx`を削減することでロードされるLLMやSLMのRAMは減らせますが、動作に支障をきたす可能性があります。 </sub>
 * `Llama-cpp-python` が対応している計算環境。
 
 ### インストール
@@ -83,6 +85,18 @@ cp .env.example .env
 GOOGLE_CUSTOM_SEARCH_API_KEY="your_google_api_key"
 GOOGLE_CUSTOM_SEARCH_ENGINE_ID="your_google_cx_id"
 ```
+
+4. **プロジェクトルートにモデルを配置:**
+main.pyと同じ階層に使用するllama.cpp対応GGUF形式ファイルを配置します。
+デフォルトのモデルは下記のものです。
+
+[unsloth/gemma-3n-E4B-it-GGUF](https://huggingface.co/unsloth/gemma-3n-E4B-it-GGUF/blob/main/gemma-3n-E4B-it-IQ4_XS.gguf)
+
+[Menlo/Jan-nano-128k-gguf](https://huggingface.co/Menlo/Jan-nano-128k-gguf/blob/main/jan-nano-128k-iQ4_XS.gguf)
+
+[unsloth/gemma-3-270m-it-GGUF](https://huggingface.co/unsloth/gemma-3-270m-it-GGUF/blob/main/gemma-3-270m-it-Q8_0.gguf)
+
+[Casual-Autopsy/snowflake-arctic-embed-l-v2.0-gguf](https://huggingface.co/Casual-Autopsy/snowflake-arctic-embed-l-v2.0-gguf/blob/main/snowflake-arctic-embed-l-v2.0-q6_k.gguf)
 
 ### エージェントの実行
 
@@ -154,13 +168,15 @@ python main.py
 * `BASE_SYSTEM_PROMPTS`: 要約、ReAct推論、記憶の統合・定着などのタスクにおけるコア機能プロンプトを定義します。
 * **`mcp_tools_config.json`**: 外部ツールサーバーを設定します。
 
-## 🗺️ ロードマップ
-
-* [ ] ReActループ内により堅牢なエラー回復メカニズムを実装する。
-* [ ] シンプルGUIの作成
-* [ ] 記憶検索アルゴリズムの高度化（Recency、Importanceスコアの導入など）。
-* [ ] 記憶の質を向上させるための自動評価・要約修正メカニズムの実装。
 
 ## 📜 ライセンス
 
+
 このプロジェクトはにApache License 2.0に基づきライセンスされています。詳細は`LICENSE`ファイルをご覧ください。
+
+
+
+
+
+
+

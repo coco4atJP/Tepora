@@ -266,7 +266,7 @@ class AgentCore:
         return workflow.compile()
     
     # 記憶ノード
-    def save_memory_node(self, state: AgentState) -> dict:
+    async def save_memory_node(self, state: AgentState) -> dict:
         """
         【EM-LLM: Memory Consolidation】
         対話の最後に、SLMを使ってその内容を要約し、エピソードとして記憶する。
@@ -296,7 +296,7 @@ class AgentCore:
 
         # 要約を生成
         try:
-            response = chain.invoke({
+            response = await chain.ainvoke({
                 "user_input": user_input,
                 "ai_response": ai_response
             })
@@ -304,7 +304,7 @@ class AgentCore:
             print(f"Consolidated Summary: {consolidated_summary}")
 
             # エピソードとしてMemorySystemに直接保存
-            self.memory_system.add_episode(summary=consolidated_summary, user_input=user_input, ai_response=ai_response)
+            await self.memory_system.add_episode(summary=consolidated_summary, user_input=user_input, ai_response=ai_response)
             print("Episode saved to long-term memory.")
         except Exception as e:
             print(f"Error during memory consolidation: {e}")
@@ -534,7 +534,8 @@ class AgentCore:
         prompt = ChatPromptTemplate.from_messages([
             ("system", f"{persona}\n\n{system_prompt}\n\n--- Relevant Context from Past Conversations ---\n{{synthesized_memory}}"),
             ("placeholder", "{chat_history}"),
-            ("human", "{input}")
+            # [セキュリティ修正] プロンプトインジェクション対策としてユーザー入力をタグで囲む
+            ("human", "<user_input>{input}</user_input>")
         ])
 
         chain = prompt | llm

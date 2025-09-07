@@ -1,13 +1,14 @@
 # agent_core/llm_manager.py
 import gc
 import logging
-from typing import Dict
+from typing import Dict, List
 from pathlib import Path
 from langchain_community.llms import LlamaCpp
 from langchain_community.embeddings import LlamaCppEmbeddings
 from langchain_community.chat_models import ChatLlamaCpp
 from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_core.embeddings import Embeddings
+from langchain_core.messages import BaseMessage
 from . import config
 
 logger = logging.getLogger(__name__)
@@ -21,6 +22,7 @@ class LLMManager:
         self._chat_llm: BaseChatModel | None = None
         self._embedding_llm: Embeddings | None = None
         self._current_model_config: Dict | None = None # ロードされたモデルの設定を保持
+        self._tokenizer_llm: LlamaCpp | None = None # トークンカウント専用
         logger.info("LLMManager for Llama.cpp initialized.")
 
     def _unload_model(self):
@@ -76,6 +78,48 @@ class LLMManager:
         self._current_model_key = key
         logger.info(f"{key} model loaded successfully (context size: {model_config['n_ctx']}).")
 
+    def _load_tokenizer(self):
+        """トークンカウント専用のLlamaCppインスタンスをロードする。"""
+        if self._tokenizer_llm is None:
+            logger.info("Loading tokenizer-only LLM instance...")
+            # メインの対話モデルと同じトークナイザを使用する
+            model_config = config.MODELS_GGUF["gemma_3n"]
+            project_root = Path(__file__).parent.parent
+            model_path = project_root / model_config["path"]
+
+            if not model_path.exists():
+                raise FileNotFoundError(f"Tokenizer model file not found: {model_path.resolve()}")
+
+            # トークナイズのためだけにGPUメモリは使わない
+            self._tokenizer_llm = LlamaCpp(
+                model_path=str(model_path.resolve()),
+                n_ctx=model_config.get("n_ctx", 4096),
+                n_gpu_layers=0, # GPUオフロードなし
+                verbose=False,
+            )
+            logger.info("Tokenizer-only LLM instance loaded.")
+
+    def count_tokens_for_messages(self, messages: List[BaseMessage]) -> int:
+        """メッセージリストの合計トークン数を数える。"""
+        if not messages:
+            return 0
+            
+        self._load_tokenizer()
+        if self._tokenizer_llm:
+            # ここでは単純に各メッセージのcontentのトークン数を合計する。
+            # 実際のプロンプトテンプレートによる追加トークンは含まれないが、
+            # 履歴の長さを管理する目的では十分な近似となる。
+            total_tokens = 0
+            for msg in messages:
+                if isinstance(msg.content, str):
+                    total_tokens += self._tokenizer_llm.get_num_tokens(msg.content)
+            return total_tokens
+        
+        # フォールバックとして文字数ベースで概算
+        logger.warning("Tokenizer LLM not available, falling back to character-based token estimation.")
+        # 1トークンあたり平均4文字と仮定
+        return sum(len(msg.content) for msg in messages if isinstance(msg.content, str)) // 4
+
     # 埋め込みモデルを取得するための専用メソッド 
     def get_embedding_model(self) -> Embeddings:
         """埋め込みモデル (Jina v3) を取得またはロードする。"""
@@ -129,3 +173,10 @@ class LLMManager:
         """アプリケーション終了時にモデルをアンロードする。"""
         logger.info("Cleaning up LLMManager...")
         self._unload_model()
+        # トークナイザインスタンスも解放
+        if self._tokenizer_llm:
+            logger.info("Unloading tokenizer-only LLM instance.")
+            # LlamaCppオブジェクトには明示的なcloseメソッドがないため、delとGCに任せる
+            del self._tokenizer_llm
+            self._tokenizer_llm = None
+            gc.collect()

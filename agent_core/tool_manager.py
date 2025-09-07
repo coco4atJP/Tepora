@@ -164,13 +164,16 @@ class GoogleCustomSearchTool(BaseTool):
             logger.error(f"Google Custom Search API connection error: {e}")
             return f"Error: Connection failed. Please check your internet connection and try again."
         except requests.exceptions.HTTPError as e:
-            logger.error(f"Google Custom Search API HTTP error: {e}")
-            if e.response.status_code == 429:
+            # [セキュリティ修正] エラーログにリクエストURLやヘッダーが含まれないように、必要な情報だけを抽出する
+            status_code = e.response.status_code if e.response else "N/A"
+            logger.error(f"Google Custom Search API HTTP error: Status {status_code}")
+            if status_code == 429:
                 return f"Error: Rate limit exceeded. Please wait a moment and try again."
-            elif e.response.status_code == 403:
+            elif status_code == 403:
                 return f"Error: API access denied. Please check your API key and permissions."
             else:
-                return f"Error: HTTP error {e.response.status_code}: {e}"
+                # [セキュリティ修正] 例外オブジェクトeを直接文字列化せず、安全な情報のみを返す
+                return f"Error: HTTP error occurred with status code {status_code}."
         except requests.exceptions.RequestException as e:
             logger.error(f"Google Custom Search API request failed: {e}")
             return f"Error: Failed to perform search: {e}"
