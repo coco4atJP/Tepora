@@ -1,4 +1,4 @@
-!(log)(Tepora_log.png)
+![log](Tepora_log.png)
 
 # Tepora - マルチAIエージェントシステム (Beta v1.5)
 
@@ -166,4 +166,5 @@ python main.py
 
 
 このプロジェクトはにApache License 2.0に基づきライセンスされています。詳細は`LICENSE`ファイルをご覧ください。
+
 
