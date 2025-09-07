@@ -139,20 +139,24 @@ python main.py
 
 これらは、`tool_manager.py` の `GoogleCustomSearchTool` のように、`langchain_core.tools.BaseTool` から継承された Python クラスです。これらは `ToolManager` によって直接ロードされます。
 
-### MCP (Multi-Server Client Protocol) ツール
+### MCP (Model Context Protocol) ツール
 
 このシステムにより、エージェントは別プロセスで実行されるツールを使用できます。ツールは任意の言語で記述できます。
 
 1. **設定**: `mcp_tools_config.json` でツールサーバーを定義します。サーバー定義はClaudeDesktop方式で可能です。
 ```json
 {
-"mcpServers": {
-"my_tool_server": {
-"command": "python",
-"args": ["-m", "path.to.your.tool_server"],
-"env": {}
-}
-}
+  "mcpServers": {
+    "filesystem": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-filesystem",
+        "C:\\Users\\username\\Desktop",
+        "C:\\Users\\username\\Downloads"
+      ]
+    }
+  }
 }
 ```
 2. **検出**: `ToolManager` は設定で定義されたプロセスを起動し、`stdio` 経由で接続し、MCP プロトコルを使用してそのプロセスが提供するツールを検出します。
@@ -173,6 +177,7 @@ python main.py
 
 
 このプロジェクトはにApache License 2.0に基づきライセンスされています。詳細は`LICENSE`ファイルをご覧ください。
+
 
 
 
