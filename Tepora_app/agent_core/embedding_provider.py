@@ -1,13 +1,13 @@
 # agent_core/embedding_provider.py
 from typing import List
-from langchain_community.embeddings import LlamaCppEmbeddings
+from langchain_core.embeddings import Embeddings
 
-class LlamaCppEmbeddingProvider:
+class EmbeddingProvider:
     """
-    Llama.cppの埋め込み機能を、SentenceTransformerのような
+    LangChainの埋め込み機能を、SentenceTransformerのような
     シンプルな .encode() インターフェースに適合させるアダプター。
     """
-    def __init__(self, llama_cpp_instance: LlamaCppEmbeddings):
+    def __init__(self, llama_cpp_instance: Embeddings):
         self._llm = llama_cpp_instance
 
     def encode(self, texts: List[str]) -> List[List[float]]:

@@ -7,13 +7,13 @@ LangGraph で用いるエージェント状態の型定義をまとめたモジ�
 - `agent_scratchpad`: ReActループ専用のワークスペース(思考/ツール呼び出し/結果)
 - `messages`: ノード間受け渡し専用のメッセージ(特にToolNodeで使用)
 - `agent_outcome`: Agentモードの最終成果物(内部レポート等)
-- `search_query`/`search_result`: 検索系ルートで使用
+- `search_queries`/`search_results`: 検索系ルートで使用
 """
 
 # agent_core/state.py
 
 from typing import List, TypedDict, Optional
-from langchain_core.messages import BaseMessage
+from langchain_core.messages import BaseMessage, HumanMessage, AIMessage
 
 class AgentAction(TypedDict):
     tool: str
@@ -26,7 +26,7 @@ class AgentFinish(TypedDict):
 class AgentState(TypedDict):
     # 初期入力と全体のチャット履歴
     input: str
-    chat_history: list[BaseMessage]
+    chat_history: List[HumanMessage | AIMessage]
     
     # AgentModeのReActループ専用の履歴 (思考、ツール呼び出し、ツール結果)
     agent_scratchpad: list[BaseMessage]
@@ -47,9 +47,9 @@ class AgentState(TypedDict):
     # ストリーミング生成時に収集されたlogprobs
     generation_logprobs: Optional[List[dict]]
 
-    # 検索用 (変更なし)
-    search_query: Optional[str]
-    search_result: Optional[str]
+    # 検索用
+    search_queries: Optional[List[str]]
+    search_results: Optional[List[dict]]
 
     # キャラクターが生成した、プロフェッショナル向けの指示書
     order: Optional[dict]
