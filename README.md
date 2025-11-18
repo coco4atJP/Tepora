@@ -34,7 +34,6 @@ Tepora_app/
     └── test_llm_manager.py
 ```
 
-> 互換性: 従来の `agent_core/graph.py`, `agent_core/em_llm_core.py`, `agent_core/em_llm_graph.py` はリダイレクト層として残っており、古いインポートも動作します。
 
 ## 💿 事前準備
 
