@@ -1,137 +1,229 @@
 # agent_core/memory/memory_system.py
 """
-Simple EM-LLM MemorySystem fallback implementation.
+ChromaDB-based MemorySystem implementation.
 
 Features:
-- Stores episodic events in a local SQLite DB.
-- Stores summary, raw history (JSON), timestamp, and embedding (as JSON array).
+- Stores episodic events in a local ChromaDB collection.
+- Stores summary (document), history (metadata), timestamp (metadata), and embedding.
 - Uses embedding_provider.encode(...) to produce embeddings (expects a list-of-lists).
 - Retrieval supports k-nearest by cosine similarity and a temporally-contiguous boost.
-- Simple schema and helper functions so it can be swapped with a ChromaDB backend later.
 """
-import sqlite3
 import json
 import time
-import os
-import math
 import logging
 from typing import List, Dict, Any, Optional
+import chromadb
 
 logger = logging.getLogger(__name__)
 
 class MemorySystem:
-    def __init__(self, embedding_provider, db_path: str = "./tepora_memory.db"):
+    def __init__(self, embedding_provider, db_path: str = "./chroma_db", collection_name: str = "tepora_memory"):
         """
         embedding_provider: object with .encode(List[str]) -> List[List[float]]
-        db_path: path to sqlite file
+        db_path: path to the directory where ChromaDB data will be stored.
+        collection_name: name of the collection to use.
         """
         self.embedding_provider = embedding_provider
         self.db_path = db_path
-        self._ensure_db()
+        self.collection_name = collection_name
+        self._init_chroma()
 
-    def _ensure_db(self):
-        created = not os.path.exists(self.db_path)
-        self._conn = sqlite3.connect(self.db_path, check_same_thread=False)
-        cur = self._conn.cursor()
-        cur.execute('''CREATE TABLE IF NOT EXISTS episodes (
-            id TEXT PRIMARY KEY,
-            created_ts REAL,
-            summary TEXT,
-            history_json TEXT,
-            embedding_json TEXT,
-            metadata_json TEXT
-        )''')
-        self._conn.commit()
-        if created:
-            logger.info(f"Created new memory DB at {self.db_path}")
-
-    def _vec_from_json(self, json_str: str):
-        return json.loads(json_str)
-
-    def _json_from_vec(self, vec: List[float]):
-        return json.dumps(vec)
+    def _init_chroma(self):
+        """Initializes the ChromaDB client and collection."""
+        try:
+            self.client = chromadb.PersistentClient(path=self.db_path)
+            self.collection = self.client.get_or_create_collection(
+                name=self.collection_name,
+                metadata={"hnsw:space": "cosine"}  # Use cosine similarity
+            )
+            logger.info(f"ChromaDB client initialized. Collection '{self.collection_name}' is ready at {self.db_path}")
+        except Exception as e:
+            logger.exception("Failed to initialize ChromaDB")
+            raise
 
     def save_episode(self, summary: str, history_json: str, metadata: Optional[Dict[str,Any]] = None):
         """
         Save an episode and compute/store its embedding.
         Returns generated id.
         """
+        if not summary:
+            logger.warning("Attempted to save an episode with an empty summary. Skipping.")
+            return None
         try:
-            doc_id = metadata.get("id") if metadata and "id" in metadata else str(time.time()).replace('.','')  # fallback id
-            # produce embedding
-            emb = self.embedding_provider.encode([summary])[0]
-            cur = self._conn.cursor()
-            cur.execute(
-                """INSERT OR REPLACE INTO episodes (id, created_ts, summary, history_json, embedding_json, metadata_json)
-                VALUES (?, ?, ?, ?, ?, ?)""", 
-                (doc_id, time.time(), summary, history_json, self._json_from_vec(emb), json.dumps(metadata or {}))
+            doc_id = metadata.get("id") if metadata and "id" in metadata else str(time.time()).replace('.','')
+            embedding = self.embedding_provider.encode([summary])[0]
+            
+            # Prepare metadata for ChromaDB
+            # All values must be str, int, float, or bool.
+            episode_metadata = {
+                "created_ts": time.time(),
+                "history_json": history_json,
+                "metadata_json": json.dumps(metadata or {})
+            }
+
+            self.collection.upsert(
+                ids=[doc_id],
+                embeddings=[embedding],
+                documents=[summary],
+                metadatas=[episode_metadata]
             )
-            self._conn.commit()
-            logger.info(f"Saved episode {doc_id} (summary len={len(summary)})")
+            logger.info(f"Saved episode {doc_id} to ChromaDB (summary len={len(summary)})")
             return doc_id
         except Exception as e:
-            logger.exception("Failed to save episode to MemorySystem")
+            logger.exception("Failed to save episode to ChromaDB MemorySystem")
             raise
 
-    def _cosine(self, a, b):
-        # handle zero vectors gracefully
-        za = sum(x*x for x in a) ** 0.5
-        zb = sum(x*x for x in b) ** 0.5
-        if za == 0 or zb == 0:
-            return 0.0
-        dot = sum(x*y for x,y in zip(a,b))
-        return dot / (za*zb)
-
-    def retrieve(self, query: str, k: int = 5, temporality_boost: float = 0.15):
+    def retrieve(self, query: str, k: int = 5, temporality_boost: float = 0.15, query_embedding_override: Optional[List[float]] = None, where_filter: Optional[Dict[str, Any]] = None):
         """
         Retrieve top-k episodes for query.
         temporality_boost: adds a small score boost for more recent episodes (0..1)
+        query_embedding_override: If provided, use this embedding instead of computing one from the query string.
+        where_filter: A ChromaDB 'where' filter dictionary to apply to the query.
         """
+        if not query and query_embedding_override is None and where_filter is None:
+            return []
         try:
-            q_emb = self.embedding_provider.encode([query])[0]
-            cur = self._conn.cursor()
-            cur.execute("SELECT id, created_ts, summary, history_json, embedding_json, metadata_json FROM episodes")
-            rows = cur.fetchall()
+            if query_embedding_override:
+                query_embedding = [query_embedding_override]
+            else:
+                query_embedding = self.embedding_provider.encode([query])
+
+            if query_embedding:
+                results = self.collection.query(
+                    query_embeddings=query_embedding,
+                    n_results=k,
+                    where=where_filter
+                )
+            else: # where_filterのみの場合
+                results = self.collection.get(
+                    where=where_filter,
+                    limit=k,
+                    include=["metadatas", "documents", "distances"] # getでもdistancesは取れないが、互換性のため
+                )
+
+            if not results or not results['ids'][0]:
+                return []
+
             scored = []
-            for r in rows:
-                eid, ts, summary, history_json, embedding_json, metadata_json = r
-                emb = self._vec_from_json(embedding_json)
-                sim = self._cosine(q_emb, emb)
-                # temporality boost: normalize timestamp into [0,1] relative to max ts
-                scored.append({"id": eid, "ts": ts, "summary": summary, "history_json": history_json, "metadata": json.loads(metadata_json), "score": sim})
+            # Chroma returns lists of lists, one for each query. We have one query.
+            ids = results['ids'][0]
+            raw_distances = results.get('distances')
+            if raw_distances and raw_distances[0] is not None:
+                distances = raw_distances[0]
+            else:
+                distances = [0.0] * len(ids)
+
+            if len(distances) < len(ids):
+                logger.debug("Distances length (%d) shorter than ids length (%d). Padding with zeros.", len(distances), len(ids))
+                distances = list(distances) + [0.0] * (len(ids) - len(distances))
+
+            metadatas = results['metadatas'][0]
+            documents = results['documents'][0]
+
+            for i in range(len(ids)):
+                # Cosine distance to similarity: sim = 1 - dist
+                sim = 1.0 - distances[i]
+                meta = metadatas[i]
+                scored.append({
+                    "id": ids[i],
+                    "ts": meta.get("created_ts", 0.0),
+                    "summary": documents[i],
+                    "history_json": meta.get("history_json", "{}"),
+                    "metadata": json.loads(meta.get("metadata_json", "{}")),
+                    "score": sim
+                })
+
             if not scored:
                 return []
-            # normalize ts
-            max_ts = max(x["ts"] for x in scored) or 1.0
-            for item in scored:
-                recency = (item["ts"] / max_ts)
-                item["score"] = item["score"] + temporality_boost * recency
+
+            # Apply temporality boost
+            if temporality_boost > 0 and len(scored) > 1:
+                max_ts = max(x["ts"] for x in scored)
+                if max_ts > 0:
+                    for item in scored:
+                        recency = item["ts"] / max_ts
+                        item["score"] += temporality_boost * recency
+
             scored.sort(key=lambda x: x["score"], reverse=True)
             topk = scored[:k]
-            logger.info(f"Retrieved {len(topk)} episodes for query (k={k}). Top score={topk[0]['score'] if topk else None}")
+            logger.info(f"Retrieved {len(topk)} episodes from ChromaDB for query (k={k}). Top score={topk[0]['score'] if topk else None}")
             return topk
         except Exception as e:
             logger.exception("Failed during retrieval")
             return []
 
     def count(self):
-        cur = self._conn.cursor()
-        cur.execute("SELECT COUNT(1) FROM episodes")
-        return cur.fetchone()[0]
+        """Returns the number of episodes in the collection."""
+        return self.collection.count()
 
     def get_all(self):
-        cur = self._conn.cursor()
-        cur.execute("SELECT id, created_ts, summary, history_json, metadata_json FROM episodes ORDER BY created_ts ASC")
-        rows = cur.fetchall()
-        return [{"id": r[0], "ts": r[1], "summary": r[2], "history": r[3], "metadata": json.loads(r[4] or "{}") } for r in rows]
+        """Returns all episodes, sorted by creation time."""
+        # Note: ChromaDB's get() doesn't guarantee order. We fetch all and sort in Python.
+        data = self.collection.get(include=["metadatas", "documents"])
+        
+        if not data or not data['ids']:
+            return []
+            
+        items = []
+        for i in range(len(data['ids'])):
+            meta = data['metadatas'][i]
+
+            metadata = {}
+            metadata_json = meta.get("metadata_json")
+            if metadata_json:
+                try:
+                    metadata = json.loads(metadata_json)
+                except json.JSONDecodeError:
+                    logger.warning(
+                        "Failed to decode metadata_json for id %s", data['ids'][i], exc_info=True
+                    )
+                    metadata = {}
+
+            # Merge in fields stored directly on the metadata payload (e.g., EM-LLM values)
+            for key, value in meta.items():
+                if key not in {"created_ts", "history_json", "metadata_json"}:
+                    metadata.setdefault(key, value)
+
+            items.append({
+                "id": data['ids'][i],
+                "ts": meta.get("created_ts", 0.0),
+                "summary": data['documents'][i],
+                "history": meta.get("history_json", "{}"),
+                "metadata": metadata
+            })
+        
+        # Sort by timestamp
+        items.sort(key=lambda x: x['ts'])
+        return items
+
+    def cleanup_old_events(self, max_age_days: int = 30, max_events: int = 10000000):
+        """古いイベントや最大数を超えたイベントを削除してメモリを管理する。"""
+        current_count = self.count()
+        if current_count <= max_events:
+            logger.info(f"Cleanup not needed. Current events ({current_count}) are within the limit ({max_events}).")
+            return
+
+        # 削除するイベント数を計算
+        num_to_delete = current_count - max_events
+
+        # 最も古いイベントを取得
+        # ChromaDBは直接ソートして取得する機能が限定的なため、全件取得してソートする
+        all_items = self.get_all() # get_allは 'ts' でソート済み
+
+        # 削除対象のIDリストを作成
+        ids_to_delete = [item['id'] for item in all_items[:num_to_delete]]
+
+        if ids_to_delete:
+            self.collection.delete(ids=ids_to_delete)
+            logger.info(f"Cleaned up {len(ids_to_delete)} oldest events to meet the max_events limit.")
+        else:
+            logger.info("No events to delete for cleanup.")
 
     def retrieve_similar_episodes(self, query: str, k: int = 5) -> List[Dict]:
         """retrieveメソッドをラッパーしてretrieve_similar_episodesと互換性のあるインターフェースを提供"""
         return self.retrieve(query, k)
 
     def close(self):
-        try:
-            self._conn.close()
-        except Exception as e:
-            logger.exception("Failed to close memory DB connection: %s", e)
-
+        """ChromaDB PersistentClient does not require explicit closing."""
+        logger.info("ChromaDB client does not require explicit close(). Skipping.")
+        pass

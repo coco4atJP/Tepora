@@ -1,12 +1,20 @@
+"""Core runtime for the Tepora agent.
+
+Provided submodules:
+
+* :mod:`agent_core.config` - structured configuration package
+* :mod:`agent_core.graph` - LangGraph assembly helpers
+* :mod:`agent_core.llm_manager` - llama.cpp-backed LLM lifecycle management
+* :mod:`agent_core.tools` - native and MCP tool loaders
+* :mod:`agent_core.tool_manager` - orchestration layer combining tool loaders
 """
-agent_core パッケージ。
 
-構成要素:
-- config: 設定値とプロンプトテンプレート
-- state: LangGraphで用いる状態定義
-- graph: 実行グラフ(エージェントの制御フロー)
-- tool_manager: ネイティブ/MCPツールの統合管理
-- llm_loader / llm_manager: LLMのロード/管理
-"""
+from .graph import AgentCore
+from .llm_manager import LLMManager
+from .tool_manager import ToolManager
 
-
+__all__ = [
+    "AgentCore",
+    "LLMManager",
+    "ToolManager",
+]
