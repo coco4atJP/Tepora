@@ -13,6 +13,7 @@ langchain>=0.2.5
 langchain-core>=0.2.10
 langchain-community>=0.2.5
 langchain-huggingface>=0.0.3
+langchain-openai>=0.1.8
 langgraph>=0.1.1
 
 # Llama.cpp Python bindings
@@ -44,8 +45,13 @@ anyio>=4.4.0
 # 設定管理の強化
 PyYAML>=6.0.1
 
-chromadb>=0.5.0
-sentence-transformers>=2.2.0
-
 # For advanced sentence tokenization
 nltk>=3.8.1
+
+# ChromaDB for vector database
+chromadb>=0.4.18
+
+# Web Server (FastAPI + WebSocket support)
+fastapi>=0.104.1
+uvicorn[standard]>=0.24.0
+websockets>=12.0
