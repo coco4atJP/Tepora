@@ -1,4 +1,4 @@
-![log](https://github.com/coco4atJP/tepora-alpha/blob/main/Tepora_logo.png)
+![log](https://github.com/coco4atJP/Tepora/blob/main/Tepora_log.png)
 
 # Tepora - マルチAIエージェントシステム (BATA v2)
 
