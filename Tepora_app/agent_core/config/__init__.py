@@ -1,0 +1,81 @@
+from __future__ import annotations
+
+"""Configuration namespace for :mod:`agent_core`.
+
+This package replaces the legacy ``config.py`` monolith with focused modules
+while keeping backwards-compatible imports for existing callers.
+"""
+
+from .paths import MODEL_BASE_PATH
+from .models import CHAT_MODELS, EMBEDDING_MODEL, EMBEDDING_MODEL_KEY, MODELS_GGUF
+from .memory import MAX_CHAT_HISTORY_TOKENS, SHORT_TERM_MEMORY_WINDOW_SIZE
+from .prompts import (
+    ACTIVE_PERSONA,
+    BASE_SYSTEM_PROMPTS,
+    PERSONA_PROMPTS,
+    format_tools_for_react_prompt,
+    resolve_system_prompt,
+)
+from .runtime import LLAMA_CPP_CONFIG
+from .tools import (
+    GOOGLE_CUSTOM_SEARCH_API_KEY,
+    GOOGLE_CUSTOM_SEARCH_BACKOFF_FACTOR,
+    GOOGLE_CUSTOM_SEARCH_CONNECT_TIMEOUT,
+    GOOGLE_CUSTOM_SEARCH_ENGINE_ID,
+    GOOGLE_CUSTOM_SEARCH_MAX_RESULTS,
+    GOOGLE_CUSTOM_SEARCH_MAX_RETRIES,
+    GOOGLE_CUSTOM_SEARCH_READ_TIMEOUT,
+    GOOGLE_SEARCH_ENABLED,
+)
+from .em import EM_LLM_CONFIG, EM_LLM_DEBUG
+from .app import (
+    CMD_AGENT_MODE,
+    CMD_EM_STATS,
+    CMD_EM_STATS_PROF,
+    CMD_EXIT,
+    CMD_SEARCH,
+    DANGEROUS_PATTERNS,
+    GRAPH_RECURSION_LIMIT,
+    MAX_INPUT_LENGTH,
+    STREAM_EVENT_CHAT_MODEL,
+    STREAM_EVENT_GRAPH_END,
+)
+
+MCP_CONFIG_FILE = "mcp_tools_config.json"
+
+__all__ = [
+    "MODEL_BASE_PATH",
+    "CHAT_MODELS",
+    "MODELS_GGUF",
+    "EMBEDDING_MODEL",
+    "EMBEDDING_MODEL_KEY",
+    "SHORT_TERM_MEMORY_WINDOW_SIZE",
+    "MAX_CHAT_HISTORY_TOKENS",
+    "ACTIVE_PERSONA",
+    "PERSONA_PROMPTS",
+    "BASE_SYSTEM_PROMPTS",
+    "resolve_system_prompt",
+    "format_tools_for_react_prompt",
+    "LLAMA_CPP_CONFIG",
+    "MCP_CONFIG_FILE",
+    "GOOGLE_CUSTOM_SEARCH_API_KEY",
+    "GOOGLE_CUSTOM_SEARCH_ENGINE_ID",
+    "GOOGLE_SEARCH_ENABLED",
+    "GOOGLE_CUSTOM_SEARCH_MAX_RESULTS",
+    "GOOGLE_CUSTOM_SEARCH_CONNECT_TIMEOUT",
+    "GOOGLE_CUSTOM_SEARCH_READ_TIMEOUT",
+    "GOOGLE_CUSTOM_SEARCH_MAX_RETRIES",
+    "GOOGLE_CUSTOM_SEARCH_BACKOFF_FACTOR",
+    "EM_LLM_CONFIG",
+    "EM_LLM_DEBUG",
+    "MAX_INPUT_LENGTH",
+    "CMD_AGENT_MODE",
+    "CMD_SEARCH",
+    "CMD_EM_STATS",
+    "CMD_EM_STATS_PROF",
+    "CMD_EXIT",
+    "DANGEROUS_PATTERNS",
+    "GRAPH_RECURSION_LIMIT",
+    "STREAM_EVENT_CHAT_MODEL",
+    "STREAM_EVENT_GRAPH_END",
+]
